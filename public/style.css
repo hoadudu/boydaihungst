@@ -1,0 +1,11 @@
+#animeImage {
+    width: 200px;
+    max-height: 300px;
+    border-radius: 10px; /* Bo góc ảnh */
+}
+.card-title {
+    white-space: nowrap;       /* Không cho xuống dòng */
+    overflow: hidden;          /* Ẩn phần chữ vượt quá */
+    text-overflow: ellipsis;   /* Thêm dấu "..." khi quá dài */
+    max-width: 100%;           /* Đảm bảo không vượt quá card */
+}

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anime List</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body class="container mt-4">
+    <h1 class="text-center">boydaihungst Anime List</h1>
+    <div class="row">
+        <% data.forEach(anime => { %>
+            <div class="col-md-2 mb-3">
+                <div class="card" id="<%= anime.id %>">
+                    <img src="<%= anime.images.portrait %>" class="card-img-top" alt="<%= anime.title %>">
+                    <div class="card-body">
+                        <h5 class="card-title"><%= anime.title %></h5>
+                        <button class="btn btn-primary view-detail" data-id="<%= anime.id %>">Xem Chi Tiết</button>
+                    </div>
+                </div>
+            </div>
+        <% }); %>
+    </div>
+
+    <!-- Modal Chi Tiết -->
+    <div class="modal fade" id="animeModal" tabindex="-1" aria-labelledby="animeModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="animeTitle"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <img id="animeImage" class="img-fluid w-10 mb-3" alt="Anime Image">
+                    <h5>Danh sách tập</h5>
+                    <ul id="episodeList" class="list-group"></ul>
+                    
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+    document.addEventListener("click", function (event) {
+        if (event.target.classList.contains("view-detail")) {
+            const animeId = event.target.getAttribute("data-id");
+
+            axios.get(`/api/seasons?series_id=${animeId}`)
+                .then(response => {
+                    const data = response.data;
+                    if (data.length > 0) {
+                        const anime = data[0];
+                        document.getElementById("animeTitle").textContent = anime.title;
+                        
+                        
+                        document.getElementById("animeImage").src = anime.images.portrait || anime.images.poster;
+
+                        // Gọi API lấy danh sách tập
+                        axios.get(`/api/season?season_id=${anime.id}`)
+                            .then(episodeResponse => {
+                                const episodeList = document.getElementById("episodeList");
+                                episodeList.innerHTML = ""; // Xóa nội dung cũ
+
+                                episodeResponse.data.results.forEach(episode => {
+                                    const episodeItem = document.createElement("li");
+                                    episodeItem.classList.add("list-group-item");
+                                    episodeItem.innerHTML = `
+                                        <img src="${episode.image}" alt="${episode.title}" class="img-thumbnail me-2" width="100">
+                                        <a href="${episode.vietsub}" target="_blank"> <strong>${episode.subtitle} Vie</strong> </a>
+                                        
+                                    `;
+                                    episodeList.appendChild(episodeItem);
+                                });
+                            })
+                            .catch(error => console.error("Lỗi khi lấy danh sách tập:", error));
+
+                        new bootstrap.Modal(document.getElementById("animeModal")).show();
+                    }
+                })
+                .catch(error => console.error("Lỗi khi lấy dữ liệu:", error));
+        }
+    });
+});
+
+
+    </script>
+    
+</body>
+</html>
