@@ -18,7 +18,14 @@
                     <img src="<%= anime.images.portrait %>" class="card-img-top" alt="<%= anime.title %>">
                     <div class="card-body">
                         <h5 class="card-title"><%= anime.title %></h5>
-                        <button class="btn btn-primary view-detail" data-id="<%= anime.id %>">Xem Chi Tiết</button>
+                        <div class="dropdown">
+                            <button class="btn btn-primary dropdown-toggle" type="button" id="dropdownMenuButton-<%= anime.id %>" data-bs-toggle="dropdown" aria-expanded="false">
+                                Chọn Season
+                            </button>
+                            <ul class="dropdown-menu season-dropdown" aria-labelledby="dropdownMenuButton-<%= anime.id %>" data-series-id="<%= anime.id %>">
+                                <li><a class="dropdown-item text-muted">Đang tải...</a></li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -46,48 +53,99 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-    document.addEventListener("click", function (event) {
-        if (event.target.classList.contains("view-detail")) {
-            const animeId = event.target.getAttribute("data-id");
+    // Xử lý khi click vào dropdown để load seasons
+    document.addEventListener("show.bs.dropdown", function (event) {
+        const dropdown = event.target.nextElementSibling;
+        if (dropdown && dropdown.classList.contains("season-dropdown")) {
+            const seriesId = dropdown.getAttribute("data-series-id");
+            
+            // Kiểm tra nếu đã load seasons rồi thì không load lại
+            if (dropdown.querySelector(".dropdown-item:not(.text-muted)")) {
+                return;
+            }
 
-            axios.get(`/api/seasons?series_id=${animeId}`)
+            // Load seasons từ API
+            axios.get(`/api/seasons?series_id=${seriesId}`)
                 .then(response => {
-                    const data = response.data;
-                    if (data.length > 0) {
-                        const anime = data[0];
-                        document.getElementById("animeTitle").textContent = anime.title;
-                        
-                        
-                        document.getElementById("animeImage").src = anime.images.portrait || anime.images.poster;
+                    const seasons = response.data;
+                    dropdown.innerHTML = ""; // Xóa nội dung "Đang tải..."
 
-                        // Gọi API lấy danh sách tập
-                        axios.get(`/api/season?season_id=${anime.id}`)
-                            .then(episodeResponse => {
-                                const episodeList = document.getElementById("episodeList");
-                                episodeList.innerHTML = ""; // Xóa nội dung cũ
+                    if (seasons.length === 0) {
+                        dropdown.innerHTML = '<li><a class="dropdown-item text-muted">Không có season nào</a></li>';
+                        return;
+                    }
 
-                                episodeResponse.data.results.forEach(episode => {
-                                    const episodeItem = document.createElement("li");
-                                    episodeItem.classList.add("list-group-item");
-                                    episodeItem.innerHTML = `
-                                        <img src="${episode.image}" alt="${episode.title}" class="img-thumbnail me-2" width="100">
-                                        <a href="${episode.vietsub}" target="_blank"> <strong>${episode.subtitle} Vie</strong> </a>
-                                        
-                                    `;
-                                    episodeList.appendChild(episodeItem);
-                                });
-                            })
-                            .catch(error => console.error("Lỗi khi lấy danh sách tập:", error));
+                    seasons.forEach(season => {
+                        const seasonItem = document.createElement("li");
+                        seasonItem.innerHTML = `
+                            <a class="dropdown-item season-item" href="#" data-season-id="${season.id}" data-season-title="${season.title}">
+                                ${season.title}
+                            </a>
+                        `;
+                        dropdown.appendChild(seasonItem);
+                    });
+                })
+                .catch(error => {
+                    console.error("Lỗi khi lấy danh sách seasons:", error);
+                    dropdown.innerHTML = '<li><a class="dropdown-item text-danger">Lỗi tải dữ liệu</a></li>';
+                });
+        }
+    });
 
-                        new bootstrap.Modal(document.getElementById("animeModal")).show();
+    // Xử lý khi click vào một season item
+    document.addEventListener("click", function (event) {
+        if (event.target.classList.contains("season-item")) {
+            event.preventDefault();
+            const seasonId = event.target.getAttribute("data-season-id");
+            const seasonTitle = event.target.getAttribute("data-season-title");
+
+            // Cập nhật title modal
+            document.getElementById("animeTitle").textContent = seasonTitle;
+            
+            // Lấy thông tin season để hiển thị ảnh
+            const seriesId = event.target.closest(".season-dropdown").getAttribute("data-series-id");
+            axios.get(`/api/seasons?series_id=${seriesId}`)
+                .then(response => {
+                    const seasons = response.data;
+                    const currentSeason = seasons.find(s => s.id == seasonId);
+                    if (currentSeason) {
+                        document.getElementById("animeImage").src = currentSeason.images.portrait || currentSeason.images.poster;
                     }
                 })
-                .catch(error => console.error("Lỗi khi lấy dữ liệu:", error));
+                .catch(error => console.error("Lỗi khi lấy thông tin season:", error));
+
+            // Gọi API lấy danh sách tập
+            axios.get(`/api/season?season_id=${seasonId}`)
+                .then(episodeResponse => {
+                    const episodeList = document.getElementById("episodeList");
+                    episodeList.innerHTML = ""; // Xóa nội dung cũ
+
+                    if (episodeResponse.data.results.length === 0) {
+                        episodeList.innerHTML = '<li class="list-group-item text-muted">Không có tập nào</li>';
+                        return;
+                    }
+
+                    episodeResponse.data.results.forEach(episode => {
+                        const episodeItem = document.createElement("li");
+                        episodeItem.classList.add("list-group-item");
+                        episodeItem.innerHTML = `
+                            <img src="${episode.image}" alt="${episode.title}" class="img-thumbnail me-2" width="100">
+                            <a href="${episode.vietsub}" target="_blank"> <strong>${episode.subtitle} Vie</strong> </a>
+                        `;
+                        episodeList.appendChild(episodeItem);
+                    });
+                })
+                .catch(error => {
+                    console.error("Lỗi khi lấy danh sách tập:", error);
+                    const episodeList = document.getElementById("episodeList");
+                    episodeList.innerHTML = '<li class="list-group-item text-danger">Lỗi tải danh sách tập</li>';
+                });
+
+            // Hiển thị modal
+            new bootstrap.Modal(document.getElementById("animeModal")).show();
         }
     });
 });
-
-
     </script>
     
 </body>

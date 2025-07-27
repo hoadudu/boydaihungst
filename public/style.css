@@ -9,3 +9,32 @@
     text-overflow: ellipsis;   /* Thêm dấu "..." khi quá dài */
     max-width: 100%;           /* Đảm bảo không vượt quá card */
 }
+
+/* Dropdown styling */
+.dropdown-menu {
+    max-height: 300px;
+    overflow-y: auto;
+    min-width: 200px;
+}
+
+.dropdown-item {
+    padding: 8px 16px;
+    transition: background-color 0.2s ease;
+}
+
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+}
+
+.season-item {
+    cursor: pointer;
+}
+
+.season-item:hover {
+    background-color: #e9ecef !important;
+}
+
+.dropdown-toggle {
+    width: 100%;
+    text-align: left;
+}
